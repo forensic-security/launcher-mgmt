@@ -1,0 +1,14 @@
+wheel
+uvicorn
+fastapi
+fastapi-crudrouter
+fastapi-pagination
+SQLAlchemy==1.4.35  # https://github.com/tiangolo/sqlmodel/issues/315
+sqlalchemy-utils
+sqlmodel
+psycopg2-binary
+
+pydantic[email, dotenv]
+python-jose[cryptography]
+passlib[bcrypt]
+python-multipart

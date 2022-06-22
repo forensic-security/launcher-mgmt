@@ -1,0 +1,66 @@
+x-postgres-vars: &postgres-vars
+  POSTGRES_HOST: db
+  POSTGRES_PORT: 5432
+  POSTGRES_USER: ${POSTGRES_USER}
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+  POSTGRES_DB: launcher
+
+networks:
+  traefik_traefik-net:
+    external: true
+  app:
+
+services:
+  db:
+    image: postgres:14.2
+    env_file: .env
+    environment:
+      <<: *postgres-vars
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - db-data:/var/lib/postgresql/data/pgdata
+    ports:
+      - "${APP_DB_PORT:?APP_DB_PORT-not-set}:5432"
+    expose:
+      - 5432
+    networks:
+      - app
+
+  app:
+    build: .
+    env_file: .env
+    environment:
+      <<: *postgres-vars
+      UVICORN_HOST: '0.0.0.0'
+      UVICORN_PORT: '8000'
+      UVICORN_LOG_LEVEL: ${LOGLEVEL:-info}
+    command: uvicorn app.main:app
+    ports:
+      - "${APP_PORT:?APP_PORT-not-set}:8000"
+    expose:
+      - 8000
+    networks:
+      - traefik_traefik-net
+      - app
+    depends_on:
+      - db
+    restart: unless-stopped
+    labels:
+      - "org.label-schema.group=launcher-management"
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik_traefik-net"
+      - "traefik.http.routers.lmgmt.rule=Host(`stage.install.management`)"
+      - "traefik.http.routers.lmgmt.entrypoints=web-secure"
+      - "traefik.http.routers.lmgmt.tls=true"
+      - "traefik.http.routers.lmgmt.tls.certresolver=ca_install_management"
+      - "traefik.http.routers.lmgmt.tls.domains[0].main=*.install.management"
+      - "traefik.http.routers.lmgmt.service=lmgmtService"
+      - "traefik.http.services.lmgmtService.loadBalancer.server.port=8000"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      - "traefik.http.routers.lmgmt-insecure.rule=Host(`stage.install.management`)"
+      - "traefik.http.routers.lmgmt-insecure.entrypoints=web"
+      - "traefik.http.routers.lmgmt-insecure.middlewares=redirect-to-https"
+
+volumes:
+  db-data:
+    name: launcher-data

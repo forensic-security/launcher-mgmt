@@ -1,0 +1,7 @@
+*               text=auto eol=lf
+
+*.md            diff=markdown
+*.py            diff=python
+*.sh            diff=bash
+
+*.gitattributes linguist-language=gitattributes
